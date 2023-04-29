@@ -30,6 +30,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Main loop
     let mut last_count = 0;
+    let mut total_packets = 0;
+    let mut total_drops = 0;
     let mut buf = [0u8; PAYLOAD_SIZE];
     let mut first = true;
     loop {
@@ -40,13 +42,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         // Now we have a valid packet as bytes in the buffer, transform into our struct
         let payload = unsafe { &*(buf.as_ptr() as *const Payload) };
+        total_packets += 1;
         // And observe the count
         if first {
             last_count = payload.count;
             first = false;
         } else {
             if payload.count != (last_count + 1) {
-                eprintln!("Dropped {} packets", payload.count - last_count + 1);
+                total_drops += payload.count - last_count - 1;
+                eprintln!("Dropped: {}", payload.count - last_count - 1);
+                eprintln!("Total packets: {}", total_packets);
+                eprintln!(
+                    "Drop percentage: {}%",
+                    total_drops as f64 / payload.count as f64 * 100.0
+                );
             }
             last_count = payload.count;
         }
